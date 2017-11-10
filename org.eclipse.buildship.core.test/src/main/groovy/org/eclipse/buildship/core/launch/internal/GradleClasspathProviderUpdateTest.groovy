@@ -1,5 +1,9 @@
 package org.eclipse.buildship.core.launch.internal
 
+import groovy.lang.Closure
+
+import org.eclipse.core.resources.IResourceChangeEvent
+import org.eclipse.core.resources.IResourceChangeListener
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.debug.core.ILaunchConfiguration
 import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy
@@ -32,7 +36,7 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         importAndWait(projectDir)
 
         then:
-        hasGradleClasspathProvider(launchConfiguration)
+        waitFor { hasGradleClasspathProvider(launchConfiguration) }
     }
 
     def "Gradle classpath provider not added for new non-Java project"() {
@@ -43,7 +47,7 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         importAndWait(projectDir)
 
         then:
-        !hasGradleClasspathProvider(launchConfiguration)
+        waitFor { !hasGradleClasspathProvider(launchConfiguration) }
     }
 
     def "Gradle classpath provider injected when Gradle project is moved under target name"() {
@@ -59,7 +63,7 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
 
         expect:
         findProject('old-name')
-        !hasGradleClasspathProvider(launchConfiguration)
+        waitFor { !hasGradleClasspathProvider(launchConfiguration) }
 
         when:
         settingsFile.text = 'include "project-name"'
@@ -67,7 +71,7 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         waitForResourceChangeEvents()
 
         then:
-        hasGradleClasspathProvider(launchConfiguration)
+        waitFor { hasGradleClasspathProvider(launchConfiguration) }
     }
 
     def "Gradle classpath provider removed when project deleted"() {
@@ -75,17 +79,23 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         File projectDir = dir('project-name') {
             file 'build.gradle', "apply plugin: 'java'"
         }
+        def listener = { IResourceChangeEvent event -> CorePlugin.logger().warn("resource changed:" + event.delta) } as IResourceChangeListener
+        workspace.addResourceChangeListener(listener, IResourceChangeEvent.POST_CHANGE)
         importAndWait(projectDir)
-
+        CorePlugin.logger().warn("project imported")
         expect:
-        hasGradleClasspathProvider(launchConfiguration)
+        waitFor { hasGradleClasspathProvider(launchConfiguration) }
 
         when:
         findProject('project-name').delete(false, new NullProgressMonitor())
         waitForResourceChangeEvents()
+        CorePlugin.logger().warn("project deleted")
 
         then:
-        !hasGradleClasspathProvider(launchConfiguration)
+        waitFor { !hasGradleClasspathProvider(launchConfiguration) }
+
+        cleanup:
+        workspace.removeResourceChangeListener(listener)
     }
 
     def "Gradle classpath provider added when Gradle nature added"() {
@@ -93,13 +103,13 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         IJavaProject javaProject = newJavaProject('project-name')
 
         expect:
-        !hasGradleClasspathProvider(launchConfiguration)
+        waitFor { !hasGradleClasspathProvider(launchConfiguration) }
 
         when:
         CorePlugin.workspaceOperations().addNature(javaProject.project, GradleProjectNature.ID, new NullProgressMonitor())
 
         then:
-        hasGradleClasspathProvider(launchConfiguration)
+        waitFor { hasGradleClasspathProvider(launchConfiguration) }
     }
 
     def "Gradle classpath provider removed when Gradle nature removed"() {
@@ -110,13 +120,13 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
         importAndWait(projectDir)
 
         expect:
-        hasGradleClasspathProvider(launchConfiguration)
+        waitFor { hasGradleClasspathProvider(launchConfiguration) }
 
         when:
         CorePlugin.workspaceOperations().removeNature(findProject('project-name'), GradleProjectNature.ID, new NullProgressMonitor())
 
         then:
-        !hasGradleClasspathProvider(launchConfiguration)
+        waitFor { !hasGradleClasspathProvider(launchConfiguration) }
     }
 
     private boolean hasGradleClasspathProvider(ILaunchConfiguration configuration) {
@@ -125,5 +135,16 @@ class GradleClasspathProviderUpdateTest extends ProjectSynchronizationSpecificat
 
     private String getClasspathProvider(ILaunchConfiguration configuration) {
         configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_CLASSPATH_PROVIDER, (String)null)
+    }
+
+    protected void waitFor(int timeout = 5000, Closure condition) {
+        long start = System.currentTimeMillis()
+        while (!condition.call()) {
+            long elapsed = System.currentTimeMillis() - start
+            if (elapsed > timeout) {
+                throw new RuntimeException('timeout')
+            }
+            Thread.sleep(100)
+        }
     }
 }

@@ -27,6 +27,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJavaLaunchConfiguration('sample-project', 'pkg.Main'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -44,6 +45,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJavaLaunchConfiguration('sample-project', 'pkg.CustomMain'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -61,6 +63,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJavaLaunchConfiguration('sample-project', 'pkg.CustomMain'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.CustomMain available')
@@ -72,6 +75,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJavaLaunchConfiguration('sample-project', 'pkg.Main'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -87,6 +91,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJavaLaunchConfiguration('sample-project', 'pkg.JunitTest'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -102,6 +107,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJUnitLaunchConfiguration('sample-project', 'pkg.JunitTest', 'test'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -117,6 +123,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
 
         when:
         launchAndWait(createJUnitLaunchConfiguration('sample-project'))
+        waitFor { consoles.activeConsoleContent.contains 'END' }
 
         then:
         assertConsoleOutputContains('pkg.Main available')
@@ -166,6 +173,7 @@ class ClasspathSeparationTest extends SwtBotSpecification {
                             exists("com.google.common.collect.ImmutableList");
                             exists("org.apache.commons.io.IOUtils");
                             exists("junit.framework.Test");
+                            System.out.println("END");
                         }
 
                         public static void exists(String className) {

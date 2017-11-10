@@ -6,16 +6,14 @@ import com.gradleware.tooling.toolingmodel.OmniEclipseProject
 import com.gradleware.tooling.toolingmodel.OmniEclipseProjectDependency
 import com.gradleware.tooling.toolingmodel.OmniExternalDependency
 
-import org.eclipse.core.resources.IProject
 import org.eclipse.core.resources.IResource
+import org.eclipse.core.resources.IWorkspaceRunnable
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.core.runtime.Path
 import org.eclipse.jdt.core.IClasspathEntry
 import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.jdt.core.JavaCore
 
-import org.eclipse.buildship.core.preferences.PersistentModel
-import org.eclipse.buildship.core.preferences.internal.DefaultPersistentModel
 import org.eclipse.buildship.core.test.fixtures.WorkspaceSpecification
 import org.eclipse.buildship.core.workspace.GradleClasspathContainer
 
@@ -42,7 +40,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
         PersistentModelBuilder persistentModel = persistentModelBuilder(project.project)
 
         when:
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         resolvedClasspath[0].entryKind == IClasspathEntry.CPE_LIBRARY
@@ -57,7 +55,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
         PersistentModelBuilder persistentModel = persistentModelBuilder(project.project)
 
         when:
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         resolvedClasspath[0].entryKind == IClasspathEntry.CPE_LIBRARY
@@ -72,7 +70,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
         PersistentModelBuilder persistentModel = persistentModelBuilder(project.project)
 
         when:
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         resolvedClasspath[0].entryKind == IClasspathEntry.CPE_LIBRARY
@@ -90,7 +88,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
         PersistentModelBuilder persistentModel = persistentModelBuilder(project.project)
 
         when:
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         resolvedClasspath[0].entryKind == IClasspathEntry.CPE_LIBRARY
@@ -113,7 +111,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
         initialContainer
 
         when:
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         def modifiedContainer = gradleClasspathContainer
@@ -121,7 +119,7 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
 
         when:
         persistentModel = persistentModelBuilder(persistentModel.build())
-        GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null)
+        runInJavaModelTransaction { GradleClasspathContainerUpdater.updateFromModel(project, gradleProject, gradleProject.all.toSet(), persistentModel, null) }
 
         then:
         modifiedContainer.is(gradleClasspathContainer)
@@ -153,5 +151,9 @@ class GradleClasspathContainerUpdaterTest extends WorkspaceSpecification {
 
     GradleClasspathContainer getGradleClasspathContainer() {
         JavaCore.getClasspathContainer(GradleClasspathContainer.CONTAINER_PATH, project)
+    }
+
+    private runInJavaModelTransaction(Closure target) {
+        JavaCore.run(target as IWorkspaceRunnable, new NullProgressMonitor())
     }
 }
